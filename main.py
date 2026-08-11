@@ -311,16 +311,16 @@ async def show_jobs_category(call: CallbackQuery):
 
 @dp.callback_query(F.data == "jobs_legal")
 async def show_legal_jobs(call: CallbackQuery):
-    await call.message.edit_text("🟢 Легальные работы (Без риска и штрафов):", reply_markup=kb.get_legal_jobs_kb())
+    await call.message.edit_text("🟢 Легальные работы", reply_markup=kb.get_legal_jobs_kb())
 
 @dp.callback_query(F.data == "jobs_illegal")
 async def show_illegal_jobs(call: CallbackQuery):
-    await call.message.edit_text("🔴 Нелегальные работы (Высокий доход, но есть шанс получить штраф!):", reply_markup=kb.get_illegal_jobs_kb())
+    await call.message.edit_text("🔴 Нелегальные работы", reply_markup=kb.get_illegal_jobs_kb())
 
 # --- Легальные ---
 @dp.callback_query(F.data == "work_loader")
 async def do_loader(call: CallbackQuery):
-    await call.message.edit_text("📦 Ты взял коробку и тащишь её на склад... (подожди 6 сек)")
+    await call.message.edit_text("📦 Ты взял коробку и тащишь её на склад...")
     await asyncio.sleep(6)
     earn = random.randint(300, 800)
     db.update_balance(call.from_user.id, earn)
@@ -330,7 +330,7 @@ async def do_loader(call: CallbackQuery):
 @dp.callback_query(F.data == "work_courier")
 async def do_courier(call: CallbackQuery):
     delay = random.randint(7, 10)
-    await call.message.edit_text(f"🚴 Мчишь на велосипеде с заказом... ({delay} сек)")
+    await call.message.edit_text(f"🚴 Мчишь на велосипеде с заказом...")
     await asyncio.sleep(delay)
     earn = int(delay * random.randint(150, 250))
     db.update_balance(call.from_user.id, earn)
@@ -353,7 +353,7 @@ async def do_taxi(call: CallbackQuery):
         await call.answer("🎉 Лицензия таксиста куплена за 20.000₽!", show_alert=True)
 
     delay = random.randint(7, 12)
-    await call.message.edit_text(f"🚖 Везёшь пассажира... ({delay} сек)")
+    await call.message.edit_text(f"🚖 Везёшь пассажира...")
     await asyncio.sleep(delay)
     earn = int(delay * random.randint(250, 400))
     db.update_balance(call.from_user.id, earn)
@@ -363,7 +363,7 @@ async def do_taxi(call: CallbackQuery):
 # --- Нелегальные ---
 @dp.callback_query(F.data == "work_pickpocket")
 async def do_pickpocket(call: CallbackQuery):
-    await call.message.edit_text("🤏 Трёшься в метро, высматриваешь кошельки... (5 сек)")
+    await call.message.edit_text("🤏 Трёшься в метро, высматриваешь кошельки...")
     await asyncio.sleep(5)
     
     if random.randint(1, 100) <= 15: # 15% риск
@@ -379,7 +379,7 @@ async def do_pickpocket(call: CallbackQuery):
 
 @dp.callback_query(F.data == "work_dealer")
 async def do_dealer(call: CallbackQuery):
-    await call.message.edit_text("📦 Прячешь «магнит» в тихом районе... (10 сек)")
+    await call.message.edit_text("📦 Прячешь «магнит» в тихом районе...")
     await asyncio.sleep(10)
     
     if random.randint(1, 100) <= 25: # 25% риск
@@ -395,7 +395,7 @@ async def do_dealer(call: CallbackQuery):
 
 @dp.callback_query(F.data == "work_collector")
 async def do_collector(call: CallbackQuery):
-    await call.message.edit_text("🔨 Выбиваешь долги у просрочившего должника... (12 сек)")
+    await call.message.edit_text("🔨 Выбиваешь долги у просрочившего должника...")
     await asyncio.sleep(12)
     
     if random.randint(1, 100) <= 20: # 20% риск
@@ -697,13 +697,18 @@ async def process_box_bet(message: Message, state: FSMContext):
 
 # ================= ШТРАФЫ =================
 
+# ================= ШТРАФЫ =================
+
 @dp.callback_query(F.data == "menu_fines")
 async def show_fines(call: CallbackQuery):
     db.process_fines_logic(call.from_user.id)
     fines = db.get_active_fines(call.from_user.id)
     
     if not fines:
-        await call.message.edit_text("✅ У тебя нет активных штрафов! Ты чист перед законами улиц.", reply_markup=kb.get_back_to_menu_kb())
+        await call.message.edit_text(
+            "✅ У тебя нет активных штрафов! Ты чист перед законами улиц.", 
+            reply_markup=kb.get_back_to_menu_kb()
+        )
         return
 
     text = "⚠️ Ваши неоплаченные штрафы:\n\n"
@@ -723,13 +728,16 @@ async def show_fines(call: CallbackQuery):
     inline_kb.append([kb.InlineKeyboardButton(text="⬅️ в главное меню", callback_data="to_main_menu")])
     await call.message.edit_text(text, reply_markup=kb.InlineKeyboardMarkup(inline_keyboard=inline_kb))
 
-@dp.callback_query(F.data.startswith("pay_fine_"))
-async def process_pay_fine(call: CallbackQuery):
-    fine_id = int(call.data.split("_")[2])
-    success, msg = db.pay_fine(fine_id, call.from_user.id)
-    await call.answer(msg, show_alert=True)
-    await show_fines(call)
-
+@dp.callback_query(F.data == "to_main_menu")
+async def back_to_main_menu(call: CallbackQuery, state: FSMContext):
+    await state.clear()
+    db.process_fines_logic(call.from_user.id)
+    user = db.get_user(call.from_user.id)
+    greet = get_dynamic_greeting(user[1], user[3])
+    try:
+        await call.message.edit_text(greet, reply_markup=kb.get_main_menu_kb())
+    except Exception:
+        await call.message.answer(greet, reply_markup=kb.get_main_menu_kb())
 
 # ================= ЕЖЕДНЕВНЫЙ БОНУС И ТОП =================
 
