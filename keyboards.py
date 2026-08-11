@@ -24,10 +24,12 @@ def get_main_menu_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🏙 профиль", callback_data="menu_profile"), InlineKeyboardButton(text="💼 работы", callback_data="menu_jobs")],
         [InlineKeyboardButton(text="🏢 бизнесы", callback_data="menu_business"), InlineKeyboardButton(text="🏠 недвижимость", callback_data="menu_houses")],
-        [InlineKeyboardButton(text="🎰 казино", callback_data="menu_casino"), InlineKeyboardButton(text="⚠️ штрафы", callback_data="menu_fines")],
-        [InlineKeyboardButton(text="🎁 ежедневный бонус", callback_data="menu_daily"), InlineKeyboardButton(text="🏆 топ игроков", callback_data="menu_top")],
-        [InlineKeyboardButton(text="🤝 рефералка", callback_data="menu_ref"), InlineKeyboardButton(text="⚙️ настройки", callback_data="menu_settings")]
+        [InlineKeyboardButton(text="👮‍♂️ МУР (Полиция)", callback_data="menu_police"), InlineKeyboardButton(text="🎰 казино", callback_data="menu_casino")],
+        [InlineKeyboardButton(text="⚠️ штрафы", callback_data="menu_fines"), InlineKeyboardButton(text="🎁 бонус", callback_data="menu_daily")],
+        [InlineKeyboardButton(text="🏆 топ игроков", callback_data="menu_top"), InlineKeyboardButton(text="🤝 рефералка", callback_data="menu_ref")],
+        [InlineKeyboardButton(text="⚙️ настройки", callback_data="menu_settings")]
     ])
+
 
 def get_back_to_menu_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -123,4 +125,24 @@ def get_house_catalog_kb():
         [InlineKeyboardButton(text="👑 дворец на рублёвке (1.500.000.000₽)", callback_data="buy_house_9")],
         [InlineKeyboardButton(text="🏝 резиденция на частном острове (5.000.000.000₽)", callback_data="buy_house_10")],
 [InlineKeyboardButton(text="⬅️ в главное меню", callback_data="to_main_menu")]
+    ])
+
+# --- 7. МУР И ПОЛИЦИЯ ---
+def get_police_kb(in_police: bool):
+    if not in_police:
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="👮‍♂️ Устроиться в МУР (100.000₽)", callback_data="pol_join")],
+            [InlineKeyboardButton(text="⬅️ в главное меню", callback_data="to_main_menu")]
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🕵️‍♂️ Пойти на смену (Схема с взятками)", callback_data="pol_work")],
+        [InlineKeyboardButton(text="⭐ Повысить звание", callback_data="pol_promote")],
+        [InlineKeyboardButton(text="🚪 Уволиться из МУРа", callback_data="pol_leave")],
+        [InlineKeyboardButton(text="⬅️ в главное меню", callback_data="to_main_menu")]
+    ])
+
+def get_bribe_choice_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💵 Взять взятку (+Деньги | 20% шанс УСБ)", callback_data="bribe_take")],
+        [InlineKeyboardButton(text="📜 Оформить протокол (+ЗП и Опыт | 0% риска)", callback_data="bribe_honest")]
     ])

@@ -884,6 +884,158 @@ async def admin_give_money(message: Message):
     user = db.get_user(message.from_user.id)
     await message.answer(f"👑 **АДМИН-ПАНЕЛЬ**: Начислено +{fmt(amount)}₽!\nБаланс: {fmt(user[3])}₽", parse_mode="Markdown")
 
+# ================= МУР И ПРОДАЖНЫЙ КОП =================
+
+POLICE_RANKS = [
+    "Рядовой", "Мл. сержант", "Сержант", "Ст. сержант", "Старшина", "Прапорщик",
+    "Ст. прапорщик", "Мл. лейтенант", "Лейтенант", "Ст. лейтенант", "Капитан", "Майор", "Подполковник", "Полковник"
+]
+
+@dp.callback_query(F.data == "menu_police")
+async def show_police(call: CallbackQuery):
+    pol = db.get_police_profile(call.from_user.id)
+    
+    if not pol:
+        text = (
+            "👮‍♂️ **Московский Уголовный Розыск (МУР)**\n\n"
+            "Хочешь крышевать улицы, брать взятки с задерживаемых и крутить схемы? "
+            "Вступи в МУР! Покупка формы и корочки стоит **100.000₽**."
+        )
+        await call.message.edit_text(text, reply_markup=kb.get_police_kb(False), parse_mode="Markdown")
+    else:
+        rank_name = POLICE_RANKS[pol[1] - 1]
+        salary = pol[1] * 15000
+        text = (
+            f"👮‍♂️ **Твоё досье в МУР:**\n\n"
+            f"⭐ Звание: **{rank_name}** ({pol[1]}/14)\n"
+            f"💵 Официальный оклад: **{fmt(salary)}₽**\n"
+            f"⚠️ Выговоры от УСБ: **{pol[2]}/3** (при 3/3 — увольнение)\n"
+            f"📈 Раскрыто дел: **{pol[3]}**\n"
+            f"⏳ Последняя смена: {datetime.fromtimestamp(pol[4]).strftime('%H:%M') if pol[4] else 'Не был'}"
+        )
+        await call.message.edit_text(text, reply_markup=kb.get_police_kb(True), parse_mode="Markdown")
+
+@dp.callback_query(F.data == "pol_join")
+async def pol_join(call: CallbackQuery):
+    user = db.get_user(call.from_user.id)
+    if user[3] < 100000:
+        await call.answer("❌ Нужно 100.000₽ для взноса в отдел!", show_alert=True)
+        return
+    
+    db.update_balance(call.from_user.id, -100000)
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT OR REPLACE INTO police (user_id, rank, reprimands, solved_cases) VALUES (?, 1, 0, 0)', (call.from_user.id,))
+    conn.commit()
+    conn.close()
+
+    await call.answer("🎉 Поздравляем! Ты принят в МУР в звании Рядовой!", show_alert=True)
+    await show_police(call)
+
+@dp.callback_query(F.data == "pol_work")
+async def pol_work(call: CallbackQuery):
+    pol = db.get_police_profile(call.from_user.id)
+    now = int(time.time())
+    
+    # Кулдаун 10 минут
+    if now - pol[4] < 600:
+        left = 600 - (now - pol[4])
+        await call.answer(f"⏳ Следующий патруль через {int(left//60)} мин {int(left%60)} сек!", show_alert=True)
+        return
+
+    await call.message.edit_text("🚔 Ты выехал на патрулирование Петровки... Задержан мажор на Гелике без номеров!")
+    await asyncio.sleep(4)
+    
+    bribe_sum = pol[1] * random.randint(25000, 60000)
+    text = (
+        f"🚘 **Задержан нарушитель!**\n\n"
+        f"Мажор дрожащими руками суёт тебе конверт, в котором **{fmt(bribe_sum)}₽**!\n\n"
+        f"Что делаем?"
+    )
+    
+    # Сохраняем кулдаун
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE police SET last_shift = ? WHERE user_id = ?', (now, call.from_user.id))
+    conn.commit()
+    conn.close()
+
+    await call.message.edit_text(text, reply_markup=kb.get_bribe_choice_kb(), parse_mode="Markdown")
+
+@dp.callback_query(F.data == "bribe_take")
+async def bribe_take(call: CallbackQuery):
+    pol = db.get_police_profile(call.from_user.id)
+    bribe_sum = pol[1] * random.randint(25000, 60000)
+
+    # 20% Шанс проверки УСБ
+    if random.randint(1, 100) <= 20:
+        reps = pol[2] + 1
+        if reps >= 3:
+            # Увольнение
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM police WHERE user_id = ?', (call.from_user.id,))
+            conn.commit()
+            conn.close()
+            await call.message.edit_text("🚨 **ОПЕРАЦИЯ УСБ!** Вас приняли с поличным при взятии взятки!\nВы ПОЗОРНО УВОЛЕНЫ ИЗ МУРа!", reply_markup=kb.get_back_to_menu_kb())
+        else:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute('UPDATE police SET reprimands = ? WHERE user_id = ?', (reps, call.from_user.id))
+            conn.commit()
+            conn.close()
+            fine = 50000
+            db.add_fine(call.from_user.id, fine)
+            await call.message.edit_text(f"🚨 **УСБ НАКРЫЛО СХЕМУ!**\nВам выписан выговор ({reps}/3) и штраф {fmt(fine)}₽!", reply_markup=kb.get_back_to_menu_kb())
+    else:
+        db.update_balance(call.from_user.id, bribe_sum)
+        await call.message.edit_text(f"🤫 **Взятка успешно взята!**\nВы положили в карман **+{fmt(bribe_sum)}₽**! УСБ ничего не заметило.", reply_markup=kb.get_back_to_menu_kb(), parse_mode="Markdown")
+
+@dp.callback_query(F.data == "bribe_honest")
+async def bribe_honest(call: CallbackQuery):
+    pol = db.get_police_profile(call.from_user.id)
+    salary = pol[1] * 15000
+    
+    db.update_balance(call.from_user.id, salary)
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE police SET solved_cases = solved_cases + 1 WHERE user_id = ?', (call.from_user.id,))
+    conn.commit()
+    conn.close()
+
+    await call.message.edit_text(f"📜 Протокол оформлен! Вы получили оклад: **+{fmt(salary)}₽** и +1 раскрытое дело!", reply_markup=kb.get_back_to_menu_kb(), parse_mode="Markdown")
+
+@dp.callback_query(F.data == "pol_promote")
+async def pol_promote(call: CallbackQuery):
+    pol = db.get_police_profile(call.from_user.id)
+    if pol[1] >= 14:
+        await call.answer("👑 Ты уже Полковник МУРа! Выше только Звезды!", show_alert=True)
+        return
+
+    req_cases = pol[1] * 3
+    if pol[3] < req_cases:
+        await call.answer(f"❌ Нужно раскрыть {req_cases} дел для повышения! (У тебя: {pol[3]})", show_alert=True)
+        return
+
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE police SET rank = rank + 1 WHERE user_id = ?', (call.from_user.id,))
+    conn.commit()
+    conn.close()
+
+    new_rank = POLICE_RANKS[pol[1]]
+    await call.answer(f"🎉 ПОЗДРАВЛЯЕМ! Новое звание: {new_rank}!", show_alert=True)
+    await show_police(call)
+
+@dp.callback_query(F.data == "pol_leave")
+async def pol_leave(call: CallbackQuery):
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM police WHERE user_id = ?', (call.from_user.id,))
+    conn.commit()
+    conn.close()
+    await call.answer("🚪 Вы уволились из МУРа по собственному желанию.", show_alert=True)
+    await back_to_main_menu(call, None)
 
 # ================= ЗАПУСК СЕРВЕРА =================
 
