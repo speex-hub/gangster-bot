@@ -57,7 +57,6 @@ def get_jobs_category_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🟢 легальные работы", callback_data="jobs_legal")],
         [InlineKeyboardButton(text="🔴 нелегальные работы", callback_data="jobs_illegal")],
-        [InlineKeyboardButton(text="🚔 отдел мур (полиция)", callback_data="jobs_cop")],
         [InlineKeyboardButton(text="🏢 мой бизнес", callback_data="menu_business")],
         [InlineKeyboardButton(text="⬅️ в главное меню", callback_data="to_main_menu")]
     ])
@@ -79,26 +78,10 @@ def get_illegal_jobs_kb():
     ])
 
 
-# --- 5. МУР / ПОЛИЦИЯ ---
-def get_cop_offer_kb():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="согласиться на предложение", callback_data="cop_accept")],
-        [InlineKeyboardButton(text="не, я в ментовку ни ногой", callback_data="cop_decline")]
-    ])
-
-def get_cop_menu_kb():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚨 пойти на дежурство", callback_data="cop_shift")],
-        [InlineKeyboardButton(text="🕵️‍♂️ тёмные делишки", callback_data="cop_dark_jobs")],
-        [InlineKeyboardButton(text="⬅️ в главное меню", callback_data="to_main_menu")]
-    ])
-
-
-# --- 6. КАЗИНО ---
+# --- 5. КАЗИНО ---
 def get_casino_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🥊 ставки на бокс", callback_data="cas_box")],
-        [InlineKeyboardButton(text="🃏 блэкджек", callback_data="cas_bj")],
         [InlineKeyboardButton(text="🎲 кости (x5)", callback_data="cas_dice")],
         [InlineKeyboardButton(text="🎰 777 слоты", callback_data="cas_slots")],
         [InlineKeyboardButton(text="⬅️ в главное меню", callback_data="to_main_menu")]
@@ -112,7 +95,7 @@ def get_box_choice_kb():
     ])
 
 
-# --- 7. БИЗНЕСЫ И НЕДВИЖИМОСТЬ ---
+# --- 6. БИЗНЕСЫ И НЕДВИЖИМОСТЬ ---
 def get_business_catalog_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🏪 ларек с шаурмой (100.000₽)", callback_data="buy_biz_1")],
@@ -139,5 +122,5 @@ def get_house_catalog_kb():
         [InlineKeyboardButton(text="🏙 5-комн. квартира в moscow city (550.000.000₽)", callback_data="buy_house_8")],
         [InlineKeyboardButton(text="👑 дворец на рублёвке (1.500.000.000₽)", callback_data="buy_house_9")],
         [InlineKeyboardButton(text="🏝 резиденция на частном острове (5.000.000.000₽)", callback_data="buy_house_10")],
-        [InlineKeyboardButton(text="⬅️ в главное меню", callback_data="to_main_menu")]
+[InlineKeyboardButton(text="⬅️ в главное меню", callback_data="to_main_menu")]
     ])
